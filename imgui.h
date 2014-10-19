@@ -133,6 +133,7 @@ namespace ImGui
     ImGuiStyle& GetStyle();
     void        NewFrame();
     void        Render();
+	void		Reset();
     void        Shutdown();
     void        ShowUserGuide();
     void        ShowStyleEditor(ImGuiStyle* ref = NULL);

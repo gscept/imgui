@@ -222,7 +222,7 @@
 namespace ImGui
 {
 
-static bool         ButtonBehaviour(const ImGuiAabb& bb, const ImGuiID& id, bool* out_hovered, bool* out_held, bool allow_key_modifiers, bool repeat = false);
+static bool         ButtonBehaviour(const ImGuiAabb& bb, const ImGuiID& id, bool* out_hovered, bool* out_held, bool allow_key_modifiers, bool repeat = false, bool force_focus = false);
 static void         LogText(const ImVec2& ref_pos, const char* text, const char* text_end = NULL);
 
 static void         RenderText(ImVec2 pos, const char* text, const char* text_end = NULL, const bool hide_text_after_hash = true);
@@ -1542,10 +1542,6 @@ void Render()
         }
         IM_ASSERT(g.Windows.size() == sorted_windows.size());           // We done something wrong
         g.Windows.swap(sorted_windows);
-
-        // Clear data for next frame
-        g.IO.MouseWheel = 0;
-        memset(g.IO.InputCharacters, 0, sizeof(g.IO.InputCharacters));
     }
 
     // Skip render altogether if alpha is 0.0
@@ -1581,6 +1577,17 @@ void Render()
             g.IO.RenderDrawListsFn(&g.RenderDrawLists[0], (int)g.RenderDrawLists.size());
         g.RenderDrawLists.resize(0);
     }
+}
+
+// reset input
+void Reset()
+{
+	ImGuiState& g = GImGui;
+	IM_ASSERT(g.Initialized);                       // Forgot to call ImGui::NewFrame()
+
+	// Clear data for next frame
+	g.IO.MouseWheel = 0;
+	memset(g.IO.InputCharacters, 0, sizeof(g.IO.InputCharacters));
 }
 
 // Find the optional ## from which we stop displaying text.
@@ -2176,7 +2183,7 @@ bool Begin(const char* name, bool* open, ImVec2 size, float fill_alpha, ImGuiWin
                 const ImGuiAabb resize_aabb(window->Aabb().GetBR()-ImVec2(18,18), window->Aabb().GetBR());
                 const ImGuiID resize_id = window->GetID("#RESIZE");
                 bool hovered, held;
-                ButtonBehaviour(resize_aabb, resize_id, &hovered, &held, true);
+                ButtonBehaviour(resize_aabb, resize_id, &hovered, &held, true, false, true);
                 resize_col = window->Color(held ? ImGuiCol_ResizeGripActive : hovered ? ImGuiCol_ResizeGripHovered : ImGuiCol_ResizeGrip);
 
                 ImVec2 size_auto_fit = ImClamp(window->SizeContentsFit + style.AutoFitPadding, style.WindowMinSize, g.IO.DisplaySize - style.AutoFitPadding);
@@ -2840,12 +2847,12 @@ void LabelText(const char* label, const char* fmt, ...)
     va_end(args);
 }
 
-static bool ButtonBehaviour(const ImGuiAabb& bb, const ImGuiID& id, bool* out_hovered, bool* out_held, bool allow_key_modifiers, bool repeat)
+static bool ButtonBehaviour(const ImGuiAabb& bb, const ImGuiID& id, bool* out_hovered, bool* out_held, bool allow_key_modifiers, bool repeat, bool force_focus)
 {
     ImGuiState& g = GImGui;
     ImGuiWindow* window = GetCurrentWindow();
 
-    const bool hovered = (g.HoveredWindow == window) && (g.HoveredId == 0) && IsMouseHoveringBox(bb);
+    const bool hovered = (((g.HoveredWindow == window) && (g.HoveredId == 0)) || force_focus) && IsMouseHoveringBox(bb);
     bool pressed = false;
     if (hovered)
     {
