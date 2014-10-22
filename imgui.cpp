@@ -1233,7 +1233,7 @@ static void SaveSettings()
     for (size_t i = 0; i != g.Windows.size(); i++)
     {
         ImGuiWindow* window = g.Windows[i];
-        if (window->Flags & (ImGuiWindowFlags_ChildWindow | ImGuiWindowFlags_Tooltip))
+		if (window->Flags & (ImGuiWindowFlags_ChildWindow | ImGuiWindowFlags_Tooltip | ImGuiWindowFlags_AutoFit))
             continue;
         ImGuiIniData* settings = FindWindowSettings(window->Name);
         settings->Pos = window->Pos;
@@ -1588,6 +1588,7 @@ void Reset()
 	// Clear data for next frame
 	g.IO.MouseWheel = 0;
 	memset(g.IO.InputCharacters, 0, sizeof(g.IO.InputCharacters));
+	memset(g.IO.KeysDown, 0, sizeof(g.IO.KeysDown));
 }
 
 // Find the optional ## from which we stop displaying text.
@@ -2000,7 +2001,7 @@ bool Begin(const char* name, bool* open, ImVec2 size, float fill_alpha, ImGuiWin
     if (!window)
     {
         // Create window the first time, and load settings
-        if (flags & (ImGuiWindowFlags_ChildWindow | ImGuiWindowFlags_Tooltip))
+		if (flags & (ImGuiWindowFlags_ChildWindow | ImGuiWindowFlags_Tooltip | ImGuiWindowFlags_AutoFit))
         {
             // Tooltip and child windows don't store settings
             window = (ImGuiWindow*)ImGui::MemAlloc(sizeof(ImGuiWindow));
@@ -2045,7 +2046,7 @@ bool Begin(const char* name, bool* open, ImVec2 size, float fill_alpha, ImGuiWin
         if (window->LastFrameDrawn < current_frame - 1)
         {
             ImGui::FocusWindow(window);
-            if ((window->Flags & ImGuiWindowFlags_Tooltip) != 0)
+			if ((window->Flags & ImGuiWindowFlags_Tooltip || window->Flags & ImGuiWindowFlags_AutoFit) != 0)
             {
                 // Hide for 1 frame while resizing
                 window->AutoFitFrames = 2;
@@ -2169,10 +2170,10 @@ bool Begin(const char* name, bool* open, ImVec2 size, float fill_alpha, ImGuiWin
             window->Size = window->SizeFull;
 
             ImU32 resize_col = 0;
-            if ((window->Flags & ImGuiWindowFlags_Tooltip) != 0)
+			if ((window->Flags & ImGuiWindowFlags_Tooltip || window->Flags & ImGuiWindowFlags_AutoFit) != 0)
             {
-                // Tooltip always resize
-                if (window->AutoFitFrames > 0)
+                // Tooltip always resize, AutoFitting windows don't care which frame we are in
+				if (window->AutoFitFrames > 0 || window->Flags & ImGuiWindowFlags_AutoFit)
                 {
                     window->SizeFull = window->SizeContentsFit + g.Style.WindowPadding - ImVec2(0.0f, g.Style.ItemSpacing.y);
                 }
@@ -4113,6 +4114,18 @@ bool InputText(const char* label, char* buf, size_t buf_size, ImGuiInputTextFlag
     bool cancel_edit = false;
     bool enter_pressed = false;
     static char text_tmp_utf8[IM_ARRAYSIZE(edit_state.InitialText)];
+
+	// compare if string being fed doesn't match the current state (i.e it has been changed from the outside)
+	ImTextStrToUtf8(text_tmp_utf8, IM_ARRAYSIZE(text_tmp_utf8), edit_state.Text, NULL);
+	if (strcmp(buf, text_tmp_utf8) != 0)
+	{
+		ImFormatString(edit_state.InitialText, IM_ARRAYSIZE(edit_state.InitialText), "%s", buf);
+		ImTextStrFromUtf8(edit_state.Text, IM_ARRAYSIZE(edit_state.Text), buf, NULL);
+		edit_state.StbState.cursor = STB_TEXTEDIT_STRINGLEN(&edit_state);
+		edit_state.UpdateScrollOffset();
+		edit_state.CursorAnimReset();
+	}
+
     if (g.ActiveId == id)
     {
         // Edit in progress

@@ -284,7 +284,7 @@ namespace ImGui
 enum ImGuiWindowFlags_
 {
     // Default: 0
-    ImGuiWindowFlags_ShowBorders            = 1 << 0,
+    ImGuiWindowFlags_ShowBorders            = 1 << 0,	
     ImGuiWindowFlags_NoTitleBar             = 1 << 1,
     ImGuiWindowFlags_NoResize               = 1 << 2,
     ImGuiWindowFlags_NoMove                 = 1 << 3,
@@ -294,6 +294,7 @@ enum ImGuiWindowFlags_
     ImGuiWindowFlags_ChildWindowAutoFitY    = 1 << 7,   // For internal use by BeginChild()
     ImGuiWindowFlags_ComboBox               = 1 << 8,   // For internal use by ComboBox()
     ImGuiWindowFlags_Tooltip                = 1 << 9,   // For internal use by Render() when using Tooltip
+	ImGuiWindowFlags_AutoFit				= 1 << 10,
 };
 
 // Flags for ImGui::InputText()
