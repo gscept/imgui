@@ -2853,7 +2853,7 @@ static bool ButtonBehaviour(const ImGuiAabb& bb, const ImGuiID& id, bool* out_ho
     ImGuiState& g = GImGui;
     ImGuiWindow* window = GetCurrentWindow();
 
-    const bool hovered = (((g.HoveredWindow == window) && (g.HoveredId == 0)) || force_focus) && IsMouseHoveringBox(bb);
+	const bool hovered = (((g.HoveredWindow == window) && (g.HoveredId == 0)) || (force_focus && g.HoveredWindowExcludingChilds == window)) && IsMouseHoveringBox(bb);
     bool pressed = false;
     if (hovered)
     {
@@ -4122,7 +4122,6 @@ bool InputText(const char* label, char* buf, size_t buf_size, ImGuiInputTextFlag
 		ImFormatString(edit_state.InitialText, IM_ARRAYSIZE(edit_state.InitialText), "%s", buf);
 		ImTextStrFromUtf8(edit_state.Text, IM_ARRAYSIZE(edit_state.Text), buf, NULL);
 		edit_state.StbState.cursor = STB_TEXTEDIT_STRINGLEN(&edit_state);
-		edit_state.UpdateScrollOffset();
 		edit_state.CursorAnimReset();
 	}
 
