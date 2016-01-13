@@ -1,100 +1,125 @@
 
-Extra fonts for ImGui.
-THOSE FONTS ARE OPTIONAL.
+ The code in imgui.cpp embeds a copy of 'ProggyClean.ttf' that you can use without any external files.
+ Those are only provided as a convenience, you can load your own .TTF files.
 
-ImGui embeds a copy of 'proggy_clean' that you can use without any external files.
-Export your own font with bmfont (www.angelcode.com/products/bmfont).
+---------------------------------
+ LOADING INSTRUCTIONS
+---------------------------------
 
-bmfont reads fonts (.ttf, .fon, etc.) and output a .fnt file and a texture file, e.g:
+ Load default font with:
 
-  proggy_clean.fon --> [bmfont] ---> proggy_clean_13.fnt
-                                     proggy_clean_13.png
+   ImGuiIO& io = ImGui::GetIO();
+   io.Fonts->AddFontDefault();
 
-If you need a free font that supports chinese/japanese characters, you can use the M+ fonts.
-TTF and sources are availables at http://mplus-fonts.sourceforge.jp/mplus-outline-fonts.
-This directory include some of the M+ fonts converted by bmfont.
+ Load .TTF file with:
 
-//-----------------------------------------------------------------------------
+   ImGuiIO& io = ImGui::GetIO();
+   io.Fonts->AddFontFromFileTTF("font.ttf", size_pixels);
+  
+ Detailed options:
 
-Configure bmfont:
+   ImFontConfig config;
+   config.OversampleH = 3;
+   config.OversampleV = 3;
+   config.GlyphExtraSpacing.x = 1.0f;
+   io.Fonts->AddFontFromFileTTF("font.ttf", size_pixels, &config);
 
-  - Export .fnt as Binary
-  - Output .png, 32-bits (or whatever is suitable for your loader/renderer)
-  - Tip: uncheck "Render from TrueType outline" and "Font Smoothing" for best result with non-anti-aliased type fonts. 
-    But you can experiment with other settings if you want anti-aliased fonts.
-  - Tip: use pngout.exe (http://advsys.net/ken/utils.htm) to further reduce the file size of .png files
-    All files in this folder have been optimised with pngout.exe
+ Combine two fonts into one:
 
------------------------------------------------------------------------------
+   // Load main font
+   io.Fonts->AddFontDefault();
 
-(A) Use font data embedded in ImGui
+   // Add character ranges and merge into main font
+   // The ranges array is not copied by the AddFont* functions and is used lazily
+   // so ensure it is available for duration of font usage
+   static const ImWchar icons_ranges[] = { 0xf000, 0xf3ff, 0 }; // will not be copied by AddFont* so keep in scope.
+   ImFontConfig config;
+   config.MergeMode = true;
+   io.Fonts->AddFontFromFileTTF("DroidSans.ttf", 18.0f, &config, io.Fonts->GetGlyphRangesJapanese());
+   io.Fonts->AddFontFromFileTTF("fontawesome-webfont.ttf", 18.0f, &config, icons_ranges);
 
-    // Access embedded font data
-    const void* fnt_data;   // pointer to FNT data
-    unsigned fnt_size;      // size of FNT data
-    const void* png_data;   // pointer to PNG data
-    unsigned int png_size;  // size of PNG data
-    ImGui::GetDefaultFontData(&fnt_data, &fnt_size, &png_data, &png_size);
+ Add a fourth parameter to bake specific font ranges only:
 
-  1. Load the .FNT data from 'fnt_data' (NB: this is done for you by default if you don't do anything)
+   // Basic Latin, Extended Latin
+   io.Fonts->AddFontFromFileTTF("font.ttf", size_pixels, NULL, io.Fonts->GetGlyphRangesDefault());
+   
+   // Include full set of about 21000 CJK Unified Ideographs
+   io.Fonts->AddFontFromFileTTF("font.ttf", size_pixels, NULL, io.Fonts->GetGlyphRangesJapanese());
+   
+   // Default + Hiragana, Katakana, Half-Width, Selection of 1946 Ideographs
+   io.Fonts->AddFontFromFileTTF("font.ttf", size_pixels, NULL, io.Fonts->GetGlyphRangesChinese());
 
-    ImGuiIO& io = ImGui::GetIO();
-    io.Font = new ImBitmapFont();
-    io.Font->LoadFromMemory(fnt_data, fnt_size);
-    
-  2. Load the .PNG data from 'png_data' into a texture
+ Offset font vertically by altering the io.Font->DisplayOffset value:
 
-//-----------------------------------------------------------------------------
+   ImFont* font = io.Fonts->AddFontFromFileTTF("font.ttf", size_pixels);
+   font->DisplayOffset.y += 1;   // Render 1 pixel down
 
-(B) Use fonts from external files
+---------------------------------
+ EMBED A FONT IN SOURCE CODE
+---------------------------------
 
-  You need to set io.FontTexUvForWhite to UV coordinates pointing to a white pixel in the texture.
-  You can either locate a white pixel manually or use code at runtime to find or write one.
-  The OpenGL example include sample code to find a white pixel given an uncompressed 32-bits texture:
+ Compile and use 'binary_to_compressed_c.cpp' to create a compressed C style array. Then load the font with:
+ 
+   ImFont* font = io.Fonts->AddFontFromMemoryCompressedTTF(compressed_data, compressed_data_size, size_pixels, ...);
+   
+ Or 
+ 
+   ImFont* font = io.Fonts->AddFontFromMemoryCompressedBase85TTF(compressed_data_base85, size_pixels, ...);
 
-  	  // Automatically find white pixel from the texture we just loaded
-	  // (io.FontTexUvForWhite needs to contains UV coordinates pointing to a white pixel in order to render solid objects)
-	  for (int tex_data_off = 0; tex_data_off < tex_x*tex_y; tex_data_off++)
-	      if (((unsigned int*)tex_data)[tex_data_off] == 0xffffffff)
-	      {
-	          io.FontTexUvForWhite = ImVec2((float)(tex_data_off % tex_x)/(tex_x), (float)(tex_data_off / tex_x)/(tex_y));
-	          break;
-	      }
+---------------------------------
+ INCLUDED FONT FILES
+---------------------------------
 
-  1. Load the .FNT data, e.g.
+ Cousine-Regular.ttf
+   Digitized data copyright (c) 2010 Google Corporation.
+   Licensed under the SIL Open Font License, Version 1.1   
 
-    ImGuiIO& io = ImGui::GetIO();
-    
-    // proggy_clean_13 [default]
-    io.Font = new ImBitmapFont();
-    io.Font->LoadFromFile("proggy_clean_13.fnt");
-    IM_ASSERT(io.Font->IsLoaded());
-    io.FontTexUvForWhite = ImVec2(0.0f/256.0f,0.0f/128);
-    io.FontYOffset = +1;
+ DroidSans.ttf
+   Copyright (c) Steve Matteson
+   Apache License, version 2.0
+   http://www.google.com/fonts/specimen/Droid+Sans
 
-    // proggy_small_12
-    io.Font = new ImBitmapFont();
-    io.Font->LoadFromFile("proggy_small_12.fnt");
-    IM_ASSERT(io.Font->IsLoaded());
-    io.FontTexUvForWhite = ImVec2(84.0f/256.0f,20.0f/64);
-    io.FontYOffset = +2;
-    
-    // proggy_small_14
-    io.Font = new ImBitmapFont();
-    io.Font->LoadFromFile("proggy_small_14.fnt");
-    IM_ASSERT(io.Font->IsLoaded());
-    io.FontTexUvForWhite = ImVec2(84.0f/256.0f,20.0f/64);
-    io.FontYOffset = +3;
-    
-    // courier_new_16
-    io.Font->LoadFromFile("courier_new_16.fnt");
-    io.FontTexUvForWhite = ImVec2(1.0f/256.0f,4.0f/128);
-    
-    // courier_new_18
-    io.Font->LoadFromFile("courier_new_18.fnt");
-    io.FontTexUvForWhite = ImVec2(4.0f/256.0f,5.0f/256);
+ ProggyClean.ttf
+   Copyright (c) 2004, 2005 Tristan Grimmer
+   MIT License
+   recommended loading setting in ImGui: Size = 13.0, DisplayOffset.Y = +1
 
+ ProggyTiny.ttf
+   Copyright (c) 2004, 2005 Tristan Grimmer
+   MIT License
+   recommended loading setting in ImGui: Size = 10.0, DisplayOffset.Y = +1
 
-  2. Load the matching .PNG data into a texture
+ Karla-Regular
+   Copyright (c) 2012, Jonathan Pinhorn
+   SIL OPEN FONT LICENSE Version 1.1
 
-//-----------------------------------------------------------------------------
+---------------------------------
+ LINKS
+---------------------------------
+
+ Icon fonts
+   https://fortawesome.github.io/Font-Awesome/
+   https://github.com/SamBrishes/kenney-icon-font
+
+ Typefaces for source code beautification
+   https://github.com/chrissimpkins/codeface
+ 
+ Programmation fonts
+   http://s9w.github.io/font_compare/
+
+ Proggy Programming Fonts
+   http://upperbounds.net
+   
+ Inconsolata
+   http://www.levien.com/type/myfonts/inconsolata.html
+
+ Adobe Source Code Pro: Monospaced font family for user interface and coding environments
+   https://github.com/adobe-fonts/source-code-pro
+
+ Monospace/Fixed Width Programmer's Fonts
+   http://www.lowing.org/fonts/
+
+ (Japanese) M+ fonts by Coji Morishita are free and include most useful Kanjis you would need.
+   http://mplus-fonts.sourceforge.jp/mplus-outline-fonts/index-en.html
+
+ Or use Arial Unicode or other Unicode fonts provided with Windows for full characters coverage (not sure of their licensing).

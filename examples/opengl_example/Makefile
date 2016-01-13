@@ -1,53 +1,61 @@
 #
-# Cross Platform Make file
-#
+# Cross Platform Makefile
 # Compatible with Ubuntu 14.04.1 and Mac OS X
 #
 #
 # if you using Mac OS X:
-#  You should install glew via homebrew
-#    brew install glew
-#  Also you'll need glfw
+# You'll need glfw
 #    http://www.glfw.org
 #
 
-CXX = g++
+#CXX = g++
 
-OBJS = main.o
-OBJS += ../../imgui.o
+EXE = opengl_example
+OBJS = main.o imgui_impl_glfw.o
+OBJS += ../../imgui.o ../../imgui_demo.o ../../imgui_draw.o
 
 UNAME_S := $(shell uname -s)
 
 
 ifeq ($(UNAME_S), Linux) #LINUX
 	ECHO_MESSAGE = "Linux"
+	LIBS = `pkg-config --static --libs glfw3`
+
 	CXXFLAGS = -I../../ `pkg-config --cflags glfw3`
-	LIBS = `pkg-config --static --libs glfw3` -lGLEW
+	CXXFLAGS += -Wall -Wformat
+	CFLAGS = $(CXXFLAGS)
 endif
 
 ifeq ($(UNAME_S), Darwin) #APPLE
 	ECHO_MESSAGE = "Mac OS X"
-
 	LIBS = -framework OpenGL -framework Cocoa -framework IOKit -framework CoreVideo
-	LIBS += -L/usr/local/Cellar/glew/1.10.0/lib -L/usr/local/lib
-	LIBS += -lglew -lglfw3
+	LIBS += -L/usr/local/lib
+	LIBS += -lglfw3
 
-	CXXFLAGS = -I/usr/local/Cellar/glew/1.10.0/include -I/usr/local/include
-	CXXFLAGS += -I../../
-
+	CXXFLAGS = -I../../ -I/usr/local/include
+	CXXFLAGS += -Wall -Wformat
 #	CXXFLAGS += -D__APPLE__
+	CFLAGS = $(CXXFLAGS)
+endif
 
+ifeq ($(UNAME_S), MINGW64_NT-6.3)
+   ECHO_MESSAGE = "Windows"
+   LIBS = -lglfw3 -lgdi32 -lopengl32 -limm32
+
+   CXXFLAGS = -I../../ -I../libs/gl3w `pkg-config --cflags glfw3`
+   CXXFLAGS += -Wall -Wformat
+   CFLAGS = $(CXXFLAGS)
 endif
 
 .cpp.o:
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
-all:imgui_example
+all: $(EXE)
 	@echo Build complete for $(ECHO_MESSAGE)
 
-imgui_example:$(OBJS)
-	$(CXX) -o imgui_example $(OBJS) $(CXXFLAGS) $(LIBS)
+$(EXE): $(OBJS)
+	$(CXX) -o $(EXE) $(OBJS) $(CXXFLAGS) $(LIBS)
 
 clean:
-	rm $(OBJS)
+	rm $(EXE) $(OBJS)
 

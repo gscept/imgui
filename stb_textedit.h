@@ -1,3 +1,7 @@
+// [ImGui] this is a slightly modified version of stb_truetype.h 1.4
+// [ImGui] we made a fix for using the END key on multi-line text edit, see https://github.com/ocornut/imgui/issues/275
+// [ImGui] we made a fix for using keyboard while using mouse, see https://github.com/nothings/stb/pull/209
+
 // stb_textedit.h - v1.4  - public domain - Sean Barrett
 // Development of this library was sponsored by RAD Game Tools
 //
@@ -434,6 +438,8 @@ static void stb_textedit_click(STB_TEXTEDIT_STRING *str, STB_TexteditState *stat
 static void stb_textedit_drag(STB_TEXTEDIT_STRING *str, STB_TexteditState *state, float x, float y)
 {
    int p = stb_text_locate_coord(str, x, y);
+   if (state->select_start == state->select_end)
+      state->select_start = state->cursor;
    state->cursor = state->select_end = p;
 }
 
@@ -957,6 +963,8 @@ retry:
          stb_textedit_move_to_first(state);
          stb_textedit_find_charpos(&find, str, state->cursor, state->single_line);
          state->cursor = find.first_char + find.length;
+         if (find.length > 0 && STB_TEXTEDIT_GETCHAR(str, state->cursor-1) == STB_TEXTEDIT_NEWLINE)
+            state->cursor--;
          state->has_preferred_x = 0;
          break;
       }
@@ -977,6 +985,8 @@ retry:
          stb_textedit_prep_selection_at_cursor(state);
          stb_textedit_find_charpos(&find, str, state->cursor, state->single_line);
          state->cursor = state->select_end = find.first_char + find.length;
+         if (find.length > 0 && STB_TEXTEDIT_GETCHAR(str, state->cursor-1) == STB_TEXTEDIT_NEWLINE)
+            state->cursor = state->select_end = state->cursor - 1;
          state->has_preferred_x = 0;
          break;
       }
@@ -1008,13 +1018,13 @@ static void stb_textedit_discard_undo(StbUndoState *state)
          int n = state->undo_rec[0].insert_length, i;
          // delete n characters from all other records
          state->undo_char_point = state->undo_char_point - (short) n;  // vsnet05
-         memmove(state->undo_char, state->undo_char + n, (size_t) (state->undo_char_point*sizeof(STB_TEXTEDIT_CHARTYPE)));
+         memmove(state->undo_char, state->undo_char + n, (size_t) ((size_t)state->undo_char_point*sizeof(STB_TEXTEDIT_CHARTYPE)));
          for (i=0; i < state->undo_point; ++i)
             if (state->undo_rec[i].char_storage >= 0)
                state->undo_rec[i].char_storage = state->undo_rec[i].char_storage - (short) n; // vsnet05 // @OPTIMIZE: get rid of char_storage and infer it
       }
       --state->undo_point;
-      memmove(state->undo_rec, state->undo_rec+1, (size_t) (state->undo_point*sizeof(state->undo_rec[0])));
+      memmove(state->undo_rec, state->undo_rec+1, (size_t) ((size_t)state->undo_point*sizeof(state->undo_rec[0])));
    }
 }
 
@@ -1032,13 +1042,13 @@ static void stb_textedit_discard_redo(StbUndoState *state)
          int n = state->undo_rec[k].insert_length, i;
          // delete n characters from all other records
          state->redo_char_point = state->redo_char_point + (short) n; // vsnet05
-         memmove(state->undo_char + state->redo_char_point, state->undo_char + state->redo_char_point-n, (size_t) ((STB_TEXTEDIT_UNDOSTATECOUNT - state->redo_char_point)*sizeof(STB_TEXTEDIT_CHARTYPE)));
+         memmove(state->undo_char + state->redo_char_point, state->undo_char + state->redo_char_point-n, (size_t) ((size_t)(STB_TEXTEDIT_UNDOSTATECOUNT - state->redo_char_point)*sizeof(STB_TEXTEDIT_CHARTYPE)));
          for (i=state->redo_point; i < k; ++i)
             if (state->undo_rec[i].char_storage >= 0)
                state->undo_rec[i].char_storage = state->undo_rec[i].char_storage + (short) n; // vsnet05
       }
       ++state->redo_point;
-      memmove(state->undo_rec + state->redo_point-1, state->undo_rec + state->redo_point, (size_t) ((STB_TEXTEDIT_UNDOSTATECOUNT - state->redo_point)*sizeof(state->undo_rec[0])));
+      memmove(state->undo_rec + state->redo_point-1, state->undo_rec + state->redo_point, (size_t) ((size_t)(STB_TEXTEDIT_UNDOSTATECOUNT - state->redo_point)*sizeof(state->undo_rec[0])));
    }
 }
 
